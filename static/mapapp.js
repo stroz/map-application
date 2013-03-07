@@ -176,6 +176,7 @@ $(function () {
             });
 
             this.model.destroy();
+	    _.invoke(Map.drawAllPoly());
         }
 
     });
@@ -187,9 +188,10 @@ $(function () {
     var MapView = Backbone.View.extend({
 
         map: null,
+	polylines: null,
 
         initialize: function () {
-            _.bindAll(this, 'createMap', 'createPin', 'drawPin', 'removePin', 'createPushPinOptions', 'removePinAtOrder', 'updatePinLocation');
+            _.bindAll(this, 'createMap', 'createPin', 'drawPin', 'removePin', 'createPushPinOptions', 'removePinAtOrder', 'updatePinLocation', 'drawAllPoly');
             Microsoft.Maps.loadModule('Microsoft.Maps.Themes.BingTheme', {
                 callback: this.createMap
             });
@@ -212,6 +214,12 @@ $(function () {
             // All Map Events Will Be Defined Here
             Microsoft.Maps.Events.addHandler(this.map, 'click', this.createPin);
 
+	    // Setup Bing polyline collection
+	    var polylines = new Microsoft.Maps.EntityCollection();
+	    this.polylines = polylines;
+
+	    this.drawAllPoly();
+
         },
 
         createPin: function (e) {
@@ -230,8 +238,41 @@ $(function () {
                 Microsoft.Maps.Events.addHandler(pin, 'dragend', this.updatePinLocation);
 
                 this.map.entities.push(pin);
+		this.drawAllPoly();
             }
         },
+
+	drawPoly: function(pin1, pin2) {
+	    latlon1 = pin1.getLocation();
+	    latlon2 = pin2.getLocation();
+
+	    var options = {strokeColor:new Microsoft.Maps.Color(200, 70, 215, 255), strokeThickness:5}; 
+
+	    var polyline = new Microsoft.Maps.Polyline([
+		new Microsoft.Maps.Location(latlon1.latitude, latlon1.longitude),
+		new Microsoft.Maps.Location(latlon2.latitude, latlon2.longitude)
+	    ], options);
+	    this.polylines.push(polyline);
+	},
+
+	drawAllPoly: function() {
+	    this.polylines.clear();
+
+	    var collection = this.map.entities;
+            var len = collection.getLength(),
+                entity;
+
+	    var prev = collection.get(0);
+            for (var i = 0; i < len; i++) {
+                entity = collection.get(i);
+                if (entity['getText']) {
+		    this.drawPoly(prev, entity);
+		    prev = entity;
+                }
+            }
+
+	    this.map.entities.push(this.polylines);
+	},
 
         updatePinLocation: function (e) {
             pushpin = e.entity;
@@ -247,6 +288,7 @@ $(function () {
             found.save();
 
             //alert(found.get('order'));
+	    this.drawAllPoly();
         },
 
         // used for drawing new pins
@@ -289,6 +331,7 @@ $(function () {
                         _.invoke(Map.drawPin(todo));
                     }
                 });
+		this.drawAllPoly();
             }
         },
 
@@ -300,7 +343,7 @@ $(function () {
             for (var i = 0; i < len; i++) {
                 entity = collection.get(i);
                 if (entity['getText'] && entity.getText() == order) {
-                    var text = entity.getText();
+                    //var text = entity.getText();
                     //alert(text);
                     var indexOfPinToRemove = this.map.entities.indexOf(entity);
                     //alert(indexOfPinToRemove);
