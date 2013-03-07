@@ -189,9 +189,13 @@ $(function () {
 
         map: null,
 	polylines: null,
+	pushpins: null,
+	polygons: null,
+	onPolygon: false,
+	onPolyline: false,
 
         initialize: function () {
-            _.bindAll(this, 'createMap', 'createPin', 'drawPin', 'removePin', 'createPushPinOptions', 'removePinAtOrder', 'updatePinLocation', 'drawAllPoly');
+            _.bindAll(this, 'createMap', 'createPin', 'drawPin', 'removePin', 'createPushPinOptions', 'removePinAtOrder', 'updatePinLocation', 'drawAllPoly', 'drawPolygon', 'turnPolygon', 'turnLine', 'turnPoint');
             Microsoft.Maps.loadModule('Microsoft.Maps.Themes.BingTheme', {
                 callback: this.createMap
             });
@@ -208,39 +212,69 @@ $(function () {
 
             var bingMap = new Microsoft.Maps.Map(document.getElementById("mapDiv"), mapOptions);
             this.map = bingMap;
-            // Draw all points already in the list
-            Todos.each(this.drawPin, this);
 
-            // All Map Events Will Be Defined Here
-            Microsoft.Maps.Events.addHandler(this.map, 'click', this.createPin);
+	    // Setup Bing pushpin collection
+	    var pushpins = new Microsoft.Maps.EntityCollection();
+	    this.pushpins = pushpins;
 
 	    // Setup Bing polyline collection
 	    var polylines = new Microsoft.Maps.EntityCollection();
 	    this.polylines = polylines;
+	    
+	    // Setup Bing polygon collection
+	    var polygons = new Microsoft.Maps.EntityCollection();
+	    this.polygons = polygons;
+
+            // Draw all points already in the list
+            Todos.each(this.drawPin, this);
+	    this.map.entities.push(this.pushpins);
+
+            // All Map Events Will Be Defined Here
+            Microsoft.Maps.Events.addHandler(this.map, 'click', this.createPin);
 
 	    this.drawAllPoly();
-
         },
+	
+	turnPoint: function() {
+	    this.onPolygon = false;
+	    this.onPolyline = false;
+	    this.polygons.clear();
+	    this.polylines.clear();
+	},
 
-        createPin: function (e) {
-            if (e.targetType == "map") {
-                var point = new Microsoft.Maps.Point(e.getX(), e.getY());
-                var loc = e.target.tryPixelToLocation(point);
-                var location = new Microsoft.Maps.Location(loc.latitude, loc.longitude);
+	turnLine: function() {
+	    this.onPolyline = true;
+	    this.onPolygon = false;
+	    this.polygons.clear();
+	    this.drawAllPoly();
+	},
 
-                // Add a Todos item at this location
-                todo = Todos.create({
-                    title: location
-                });
+	turnPolygon: function() {
+	    this.onPolygon = true;
+	    this.onPolyline = true;
+	    this.drawAllPoly();
+	},
+	
+	drawPolygon: function() {
+	    this.polygons.clear();
 
-                var pin = new Microsoft.Maps.Pushpin(location, this.createPushPinOptions(todo.get('order').toString()));
-                Microsoft.Maps.Events.addHandler(pin, 'rightclick', this.removePin);
-                Microsoft.Maps.Events.addHandler(pin, 'dragend', this.updatePinLocation);
-
-                this.map.entities.push(pin);
-		this.drawAllPoly();
+	    var collection = this.pushpins;
+            var len = collection.getLength(),
+                entity;
+	    var vertices = [];
+	    for (var i = 0; i < len; i++) {
+                vertices[i] = collection.get(i).getLocation();
             }
-        },
+	    // add final pushpin as first puspin
+	    vertices[len] = collection.get(0).getLocation()
+
+	    var polygoncolor = new Microsoft.Maps.Color(60, 70, 215, 255);
+            var polygon = new Microsoft.Maps.Polygon(vertices, {fillColor: polygoncolor, strokeColor: polygoncolor});
+	    this.polygons.push(polygon);
+
+            // Add the shape to the map
+            this.map.entities.push(this.polygons);
+	},
 
 	drawPoly: function(pin1, pin2) {
 	    latlon1 = pin1.getLocation();
@@ -256,22 +290,32 @@ $(function () {
 	},
 
 	drawAllPoly: function() {
-	    this.polylines.clear();
+	    if(this.onPolyline){
+		this.polylines.clear();
 
-	    var collection = this.map.entities;
-            var len = collection.getLength(),
+		var collection = this.pushpins;
+		var len = collection.getLength(),
                 entity;
+		
+		var prev = collection.get(0);
 
-	    var prev = collection.get(0);
-            for (var i = 0; i < len; i++) {
-                entity = collection.get(i);
-                if (entity['getText']) {
+		for (var i = 0; i < len; i++) {
+                    entity = collection.get(i);
 		    this.drawPoly(prev, entity);
 		    prev = entity;
-                }
-            }
+		    
+		    // Draw final connecting polyline if onPolygon and last element
+		    if(i == len-1 && this.onPolygon){
+			this.drawPoly(entity, collection.get(0));
+		    }
+		}
 
-	    this.map.entities.push(this.polylines);
+		// If onPolygon, draw the Polygon
+		if(this.onPolygon){
+		    this.drawPolygon();
+		}
+		this.map.entities.push(this.polylines);
+	    }
 	},
 
         updatePinLocation: function (e) {
@@ -287,8 +331,26 @@ $(function () {
             });
             found.save();
 
-            //alert(found.get('order'));
 	    this.drawAllPoly();
+        },
+	
+	createPin: function (e) {
+            if (e.targetType == "map") {
+                var point = new Microsoft.Maps.Point(e.getX(), e.getY());
+                var loc = e.target.tryPixelToLocation(point);
+                var location = new Microsoft.Maps.Location(loc.latitude, loc.longitude);
+
+                // Add a Todos item at this location
+                todo = Todos.create({
+                    title: location
+                });
+
+		// Draw new pin, Draw new polylines
+		this.drawPin(todo);
+
+		this.map.entities.push(this.pushpins);
+		this.drawAllPoly();
+            }
         },
 
         // used for drawing new pins
@@ -297,7 +359,7 @@ $(function () {
             Microsoft.Maps.Events.addHandler(pin, 'rightclick', this.removePin);
             Microsoft.Maps.Events.addHandler(pin, 'dragend', this.updatePinLocation);
 
-            this.map.entities.push(pin);
+	    this.pushpins.push(pin);
         },
 
         createPushPinOptions: function (id) {
@@ -311,13 +373,12 @@ $(function () {
 
         removePin: function (e) {
             if (e.targetType == "pushpin") {
-                var indexOfPinToRemove = this.map.entities.indexOf(e.target);
-
-                var pushpin = this.map.entities.get(indexOfPinToRemove);
+                var indexOfPinToRemove = this.pushpins.indexOf(e.target);
+                var pushpin = this.pushpins.get(indexOfPinToRemove);
                 var order = parseInt(pushpin.getText());
 
                 _.invoke(Todos.getByOrder(order), 'destroy');
-                this.map.entities.removeAt(indexOfPinToRemove);
+                this.pushpins.removeAt(indexOfPinToRemove);
 
                 // Now update the text on the pins for all pins higher than that.
                 Todos.each(function (todo) {
@@ -336,18 +397,15 @@ $(function () {
         },
 
         removePinAtOrder: function (order) {
-            var collection = this.map.entities;
+            var collection = this.pushpins;
             var len = collection.getLength(),
                 entity;
 
             for (var i = 0; i < len; i++) {
                 entity = collection.get(i);
-                if (entity['getText'] && entity.getText() == order) {
-                    //var text = entity.getText();
-                    //alert(text);
-                    var indexOfPinToRemove = this.map.entities.indexOf(entity);
-                    //alert(indexOfPinToRemove);
-                    this.map.entities.removeAt(indexOfPinToRemove);
+                if (entity.getText() == order) {
+                    var indexOfPinToRemove = this.pushpins.indexOf(entity);
+                    this.pushpins.removeAt(indexOfPinToRemove);
                     break;
                 }
             }
@@ -374,7 +432,10 @@ $(function () {
         events: {
             "keypress #new-todo": "createOnEnter",
             "click #clear-completed": "clearCompleted",
-            "click #toggle-all": "toggleAllComplete"
+            "click #toggle-all": "toggleAllComplete",
+
+	    "change #type-selector": "typeSelector"
+
         },
 
         // At initialization we bind to the relevant events on the `Todos`
@@ -394,6 +455,24 @@ $(function () {
 
             Todos.fetch();
         },
+
+	typeSelector: function(e) {
+	    $type = $(e.currentTarget).val()
+	    switch($type) {
+	    case 'point':
+		//alert("point");
+		_.invoke(Map.turnPoint());
+		break;
+	    case 'line':
+		//alert("line");
+		_.invoke(Map.turnLine());
+		break;
+	    case 'shape':
+		//alert("shape");
+		_.invoke(Map.turnPolygon());
+		break;
+	    }
+	},
 
         // Re-rendering the App just means refreshing the statistics -- the rest
         // of the app doesn't change.
@@ -449,12 +528,14 @@ $(function () {
         },
 
         toggleAllComplete: function () {
-            var done = this.allCheckbox.checked;
-            Todos.each(function (todo) {
-                todo.save({
-                    'done': done
-                });
-            });
+            //var done = this.allCheckbox.checked;
+            //Todos.each(function (todo) {
+            //    todo.save({
+            //        'done': done
+            //    });
+            //});
+	    _.invoke(Map.togglePolygon());
+	    
         }
 
     });
