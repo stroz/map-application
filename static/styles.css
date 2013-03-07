@@ -15,7 +15,7 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-#todoapp {
+#mappointapp {
 	background: #fff;
 	padding: 20px;
 	margin-bottom: 40px;
@@ -31,14 +31,14 @@ body {
 	border-radius: 0 0 5px 5px;
 }
 
-#todoapp h1 {
+#mappointapp h1 {
 	font-size: 36px;
 	font-weight: bold;
 	text-align: center;
 	padding: 0 0 10px 0;
 }
 
-#todoapp input[type="text"] {
+#mappointapp input[type="text"] {
 	width: 466px;
 	font-size: 24px;
 	font-family: inherit;
@@ -54,7 +54,7 @@ body {
 	box-shadow: rgba(0, 0, 0, 0.2) 0 1px 2px 0 inset;
 }
 
-#todoapp input::-webkit-input-placeholder {
+#mappointapp input::-webkit-input-placeholder {
 	font-style: italic;
 }
 
@@ -62,29 +62,29 @@ body {
 	display: none;
 }
 
-#todo-list {
+#mappoint-list {
 	margin: 10px 0;
 	padding: 0;
 	list-style: none;
 }
 
-#todo-list li {
+#mappoint-list li {
 	padding: 18px 20px 18px 0;
 	position: relative;
 	font-size: 24px;
 	border-bottom: 1px solid #cccccc;
 }
 
-#todo-list li:last-child {
+#mappoint-list li:last-child {
 	border-bottom: none;
 }
 
-#todo-list li.done label {
+#mappoint-list li.done label {
 	color: #777777;
 	text-decoration: line-through;
 }
 
-#todo-list .destroy {
+#mappoint-list .destroy {
 	position: absolute;
 	right: 5px;
 	top: 20px;
@@ -95,44 +95,44 @@ body {
 	background: url(destroy.png) no-repeat;
 }
 
-#todo-list li:hover .destroy {
+#mappoint-list li:hover .destroy {
   	display: block;
 }
 
-#todo-list .destroy:hover {
+#mappoint-list .destroy:hover {
   	background-position: 0 -20px;
 }
 
-#todo-list li.editing {
+#mappoint-list li.editing {
 	border-bottom: none;
 	margin-top: -1px;
 	padding: 0;
 }
 
-#todo-list li.editing:last-child {
+#mappoint-list li.editing:last-child {
 	margin-bottom: -1px;
 }
 
-#todo-list li.editing .edit {
+#mappoint-list li.editing .edit {
 	display: block;
 	width: 444px;
 	padding: 13px 15px 14px 20px;
 	margin: 0;
 }
 
-#todo-list li.editing .view {
+#mappoint-list li.editing .view {
 	display: none;
 }
 
-#todo-list li .view label {
+#mappoint-list li .view label {
 	word-break: break-word;
 }
 
-#todo-list li .edit {
+#mappoint-list li .edit {
 	display: none;
 }
 
-#todoapp footer {
+#mappointapp footer {
 	display: none;
 	margin: 0 -20px -20px -20px;
 	overflow: hidden;
@@ -185,7 +185,7 @@ body {
 	top: 1px;
 }
 
-#todo-count span {
+#mappoint-count span {
 	font-weight: bold;
 }
 
@@ -200,21 +200,16 @@ body {
 	color: #336699;
 }
 
-#credits {
-	margin: 30px auto;
-	color: #999;
-	text-shadow: rgba(255, 255, 255, 0.8) 0 1px 0;
-	text-align: center;
-}
-
-#credits a {
-	color: #888;
-}
-
 #mapDiv {
     position: absolute;
     top: 0px; 
     left: 20px;
     width: 600px;
     height: 400px;
+}
+
+select {
+    font-size: 20px;
+    width: 100px;
+    margin-top: 20px;
 }

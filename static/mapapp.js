@@ -3,22 +3,24 @@
 // Load the application once the DOM is ready, using `jQuery.ready`:
 $(function () {
 
-    // Todo Model ----------
+    // MapPoint Model `title`, `order`, and `done` attributes.
+    // --------------
+    var MapPoint = Backbone.Model.extend({
 
-    // Our basic **Todo** model has `title`, `order`, and `done` attributes.
-    var Todo = Backbone.Model.extend({
-
-        // Default attributes for the todo item.
+        // Default attributes for the mappoint item.
         defaults: function () {
             return {
+		// title refers to the location of the point
                 title: "display point...",
-                pin_index: 0,
-                order: Todos.nextOrder(),
+                order: MapPoints.nextOrder(),
+		// description and type are attributes of the first point.
+		description: "Type description here.",
+		type: "point",
                 done: false
             };
         },
 
-        // Ensure that each todo created has `title`.
+        // Ensure that each mappoint created has `title`.
         initialize: function () {
             if (!this.get("title")) {
                 this.set({
@@ -27,7 +29,7 @@ $(function () {
             }
         },
 
-        // Toggle the `done` state of this todo item.
+        // Toggle the `done` state of this mappoint item.
         toggle: function () {
             this.save({
                 done: !this.get("done")
@@ -36,47 +38,45 @@ $(function () {
 
     });
 
-    // Todo Collection
-    // ---------------
-
-    // The collection of todos is backed by *localStorage* instead of a remote
-    // server.
-    var TodoList = Backbone.Collection.extend({
+    // MapPoints Collection is backed by *localStorage* instead of a remote server.
+    // --------------
+    
+    var MapPointList = Backbone.Collection.extend({
 
         // Reference to this collection's model.
-        model: Todo,
+        model: MapPoint,
 
-        // Save all of the todo items under the `"todos-backbone"` namespace.
-        localStorage: new Backbone.LocalStorage("todos-backbone"),
+        // Save all of the MapPoint items under the mappoints-backbone namespace.
+        localStorage: new Backbone.LocalStorage("mappoints-backbone"),
 
-        // Filter down the list of all todo items that are finished.
+        // Filter down the list of all mappoint items that are finished.
         done: function () {
-            return this.filter(function (todo) {
-                return todo.get('done');
+            return this.filter(function (mappoint) {
+                return mappoint.get('done');
             });
         },
 
-        // Filter down the list to only todo items that are still not finished.
+        // Filter down the list to only mappoint items that are still not finished.
         remaining: function () {
             return this.without.apply(this, this.done());
         },
 
-        // We keep the Todos in sequential order, despite being saved by unordered
+        // We keep the MapPoints in sequential order, despite being saved by unordered
         // GUID in the database. This generates the next order number for new items.
         nextOrder: function () {
             if (!this.length) return 1;
             return this.last().get('order') + 1;
         },
 
-        // Todos are sorted by their original insertion order.
-        comparator: function (todo) {
-            return todo.get('order');
+        // Mappoints are sorted by their original insertion order.
+        comparator: function (mappoint) {
+            return mappoint.get('order');
         },
 
-        // Find and return the todo at order
+        // Find and return the mappoint at order
         getByOrder: function (order) {
-            return this.filter(function (todo) {
-                if (todo.get('order') == order) {
+            return this.filter(function (mappoint) {
+                if (mappoint.get('order') == order) {
                     return true;
                 }
                 return false;
@@ -85,16 +85,13 @@ $(function () {
 
     });
 
-    // Create our global collection of **Todos**.
-    var Todos = new TodoList;
+    // Create our global collection of MapPoints.
+    var MapPoints = new MapPointList;
 
-    // Todo Item View
+    // MapPoint Item View
     // --------------
+    var MapPointView = Backbone.View.extend({
 
-    // The DOM element for a todo item...
-    var TodoView = Backbone.View.extend({
-
-        //... is a list tag.
         tagName: "li",
 
         // Cache the template function for a single item.
@@ -102,56 +99,22 @@ $(function () {
 
         // The DOM events specific to an item.
         events: {
-            "click .toggle": "toggleDone",
-            "dblclick .view": "edit",
             "click a.destroy": "clear",
-            "keypress .edit": "updateOnEnter",
-            "blur .edit": "close"
         },
 
-        // The TodoView listens for changes to its model, re-rendering. Since there's
-        // a one-to-one correspondence between a **Todo** and a **TodoView** in this
+        // The MapPointView listens for changes to its model, re-rendering. Since there's
+        // a one-to-one correspondence between a **MapPoint** and a **MapPointView** in this
         // app, we set a direct reference on the model for convenience.
         initialize: function () {
             this.listenTo(this.model, 'change', this.render);
             this.listenTo(this.model, 'destroy', this.remove);
         },
 
-        // Re-render the titles of the todo item.
+        // Re-render the titles of the mappoint item.
         render: function () {
             this.$el.html(this.template(this.model.toJSON()));
-            this.$el.toggleClass('done', this.model.get('done'));
             this.input = this.$('.edit');
             return this;
-        },
-
-        // Toggle the `"done"` state of the model.
-        toggleDone: function () {
-            this.model.toggle();
-        },
-
-        // Switch this view into `"editing"` mode, displaying the input field.
-        edit: function () {
-            this.$el.addClass("editing");
-            this.input.focus();
-        },
-
-        // Close the `"editing"` mode, saving changes to the todo.
-        close: function () {
-            var value = this.input.val();
-            if (!value) {
-                this.clear();
-            } else {
-                this.model.save({
-                    title: value
-                });
-                this.$el.removeClass("editing");
-            }
-        },
-
-        // If you hit `enter`, we're through editing the item.
-        updateOnEnter: function (e) {
-            if (e.keyCode == 13) this.close();
         },
 
         // Remove the item, destroy the model.
@@ -160,18 +123,15 @@ $(function () {
             _.invoke(Map.removePinAtOrder(order));
 
             // Now update the text on the pins for all pins higher than that.
-            Todos.each(function (todo) {
-                var thisOrder = todo.get('order');
+            MapPoints.each(function (mappoint) {
+                var thisOrder = mappoint.get('order');
                 if (thisOrder > order) {
-                    //.removePinAtOrder(thisOrder);
-                    //alert("got here");
                     _.invoke(Map.removePinAtOrder(thisOrder));
-                    todo.set({
+                    mappoint.set({
                         'order': thisOrder - 1
                     });
-                    todo.save();
-                    _.invoke(Map.drawPin(todo));
-                    //this.drawPin(todo);
+                    mappoint.save();
+                    _.invoke(Map.drawPin(mappoint));
                 }
             });
 
@@ -226,13 +186,26 @@ $(function () {
 	    this.polygons = polygons;
 
             // Draw all points already in the list
-            Todos.each(this.drawPin, this);
+            MapPoints.each(this.drawPin, this);
 	    this.map.entities.push(this.pushpins);
 
             // All Map Events Will Be Defined Here
             Microsoft.Maps.Events.addHandler(this.map, 'click', this.createPin);
 
-	    this.drawAllPoly();
+	    // Set initial state based on the value of type-selector and draw polylines or shapes
+	    $type = $("#type-selector").val()
+	    switch($type)
+	    {
+	    case "point":
+		this.turnPoint();
+		break;
+	    case "line":
+		this.turnLine();
+		break;
+	    case "shape":
+		this.turnPolygon();
+		break;
+	    }
         },
 	
 	turnPoint: function() {
@@ -322,8 +295,8 @@ $(function () {
             pushpin = e.entity;
             var order = parseInt(pushpin.getText());
 
-            var found = Todos.find(function (todo) {
-                return todo.get('order') === order;
+            var found = MapPoints.find(function (mappoint) {
+                return mappoint.get('order') === order;
             });
 
             found.set({
@@ -340,13 +313,13 @@ $(function () {
                 var loc = e.target.tryPixelToLocation(point);
                 var location = new Microsoft.Maps.Location(loc.latitude, loc.longitude);
 
-                // Add a Todos item at this location
-                todo = Todos.create({
+                // Add a MapPoints item at this location
+                mappoint = MapPoints.create({
                     title: location
                 });
 
 		// Draw new pin, Draw new polylines
-		this.drawPin(todo);
+		this.drawPin(mappoint);
 
 		this.map.entities.push(this.pushpins);
 		this.drawAllPoly();
@@ -354,8 +327,8 @@ $(function () {
         },
 
         // used for drawing new pins
-        drawPin: function (todo) {
-            var pin = new Microsoft.Maps.Pushpin(todo.get('title'), this.createPushPinOptions(todo.get('order').toString()));
+        drawPin: function (mappoint) {
+            var pin = new Microsoft.Maps.Pushpin(mappoint.get('title'), this.createPushPinOptions(mappoint.get('order').toString()));
             Microsoft.Maps.Events.addHandler(pin, 'rightclick', this.removePin);
             Microsoft.Maps.Events.addHandler(pin, 'dragend', this.updatePinLocation);
 
@@ -377,21 +350,31 @@ $(function () {
                 var pushpin = this.pushpins.get(indexOfPinToRemove);
                 var order = parseInt(pushpin.getText());
 
-                _.invoke(Todos.getByOrder(order), 'destroy');
+                _.invoke(MapPoints.getByOrder(order), 'destroy');
                 this.pushpins.removeAt(indexOfPinToRemove);
+		
+		// If we removed the first element, reset description and type to new number 1 (order 2)
+		if(order == 1){
+		    var found = MapPoints.find(function (mappoint) {
+			return mappoint.get('order') === 2;
+		    });
+		    found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
+		    found.save();
+		}
 
                 // Now update the text on the pins for all pins higher than that.
-                Todos.each(function (todo) {
-                    var thisOrder = todo.get('order');
+                MapPoints.each(function (mappoint) {
+                    var thisOrder = mappoint.get('order');
                     if (thisOrder > order) {
                         _.invoke(Map.removePinAtOrder(thisOrder));
-                        todo.set({
+                        mappoint.set({
                             'order': thisOrder - 1
                         });
-                        todo.save();
-                        _.invoke(Map.drawPin(todo));
+                        mappoint.save();
+                        _.invoke(Map.drawPin(mappoint));
                     }
                 });
+
 		this.drawAllPoly();
             }
         },
@@ -406,6 +389,16 @@ $(function () {
                 if (entity.getText() == order) {
                     var indexOfPinToRemove = this.pushpins.indexOf(entity);
                     this.pushpins.removeAt(indexOfPinToRemove);
+		    
+		    // If we removed the first element, reset description and type to new number 1 (order 2)
+		    if(order == 1){
+			var found = MapPoints.find(function (mappoint) {
+			    return mappoint.get('order') === 2;
+			});
+			found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
+			found.save();
+		    }
+
                     break;
                 }
             }
@@ -423,52 +416,60 @@ $(function () {
 
         // Instead of generating a new element, bind to the existing skeleton of
         // the App already present in the HTML.
-        el: $("#todoapp"),
+        el: $("#mappointapp"),
 
         // Our template for the line of statistics at the bottom of the app.
         statsTemplate: _.template($('#stats-template').html()),
 
         // Delegated events for creating new items, and clearing completed ones.
         events: {
-            "keypress #new-todo": "createOnEnter",
-            "click #clear-completed": "clearCompleted",
-            "click #toggle-all": "toggleAllComplete",
-
-	    "change #type-selector": "typeSelector"
-
+	    "change #type-selector": "typeSelector",
+            "blur #new-mapinfo": "create",
+	    "keypress #new-mapinfo": "createOnEnter",
         },
 
-        // At initialization we bind to the relevant events on the `Todos`
+        // At initialization we bind to the relevant events on the `MapPoints`
         // collection, when items are added or changed. Kick things off by
-        // loading any preexisting todos that might be saved in *localStorage*.
+        // loading any preexisting mappoints that might be saved in *localStorage*.
         initialize: function () {
 
-            this.input = this.$("#new-todo");
-            this.allCheckbox = this.$("#toggle-all")[0];
+            this.input = this.$("#new-mapinfo");
+	    this.type = this.$("#type-selector");
 
-            this.listenTo(Todos, 'add', this.addOne);
-            this.listenTo(Todos, 'reset', this.addAll);
-            this.listenTo(Todos, 'all', this.render);
+            this.listenTo(MapPoints, 'add', this.addOne);
+            this.listenTo(MapPoints, 'reset', this.addAll);
+            this.listenTo(MapPoints, 'all', this.render);
 
             this.footer = this.$('footer');
             this.main = $('#main');
 
-            Todos.fetch();
+            MapPoints.fetch();
+
+	    // Render the description and type
+	    var found = MapPoints.find(function (mappoint) {
+                return mappoint.get('order') === 1;
+            });
+	    this.input.val(found.get("description"));
+	    this.type.val(found.get("type"));
         },
 
 	typeSelector: function(e) {
 	    $type = $(e.currentTarget).val()
+	    
+	    var found = MapPoints.find(function (mappoint) {
+                return mappoint.get('order') === 1;
+            });
+	    found.set({"type": $type});
+	    found.save();
+
 	    switch($type) {
 	    case 'point':
-		//alert("point");
 		_.invoke(Map.turnPoint());
 		break;
 	    case 'line':
-		//alert("line");
 		_.invoke(Map.turnLine());
 		break;
 	    case 'shape':
-		//alert("shape");
 		_.invoke(Map.turnPolygon());
 		break;
 	    }
@@ -477,10 +478,10 @@ $(function () {
         // Re-rendering the App just means refreshing the statistics -- the rest
         // of the app doesn't change.
         render: function () {
-            var done = Todos.done().length;
-            var remaining = Todos.remaining().length;
+            var done = MapPoints.done().length;
+            var remaining = MapPoints.remaining().length;
 
-            if (Todos.length) {
+            if (MapPoints.length) {
                 this.main.show();
                 this.footer.show();
                 this.footer.html(this.statsTemplate({
@@ -492,51 +493,37 @@ $(function () {
                 this.footer.hide();
             }
 
-            this.allCheckbox.checked = !remaining;
         },
 
-        // Add a single todo item to the list by creating a view for it, and
+        // Add a single mappoint item to the list by creating a view for it, and
         // appending its element to the `<ul>`.
-        addOne: function (todo) {
-            var view = new TodoView({
-                model: todo
+        addOne: function (mappoint) {
+            var view = new MapPointView({
+                model: mappoint
             });
-            this.$("#todo-list").append(view.render().el);
+            this.$("#mappoint-list").append(view.render().el);
         },
 
-        // Add all items in the **Todos** collection at once.
+        // Add all items in the **MapPoints** collection at once.
         addAll: function () {
-            Todos.each(this.addOne, this);
+            MapPoints.each(this.addOne, this);
         },
 
-        // If you hit return in the main input field, create new **Todo** model,
+	create: function() {
+	    var found = MapPoints.find(function (mappoint) {
+                return mappoint.get('order') === 1;
+            });
+	    found.set({"description": this.input.val()});
+	    found.save();
+	},
+
+        // If you hit return in the main input field, create new **MapPoint** model,
         // persisting it to *localStorage*.
         createOnEnter: function (e) {
             if (e.keyCode != 13) return;
-            if (!this.input.val()) return;
-
-            Todos.create({
-                title: this.input.val()
-            });
-            this.input.val('');
+	    this.create();
+	    this.input.blur();
         },
-
-        // Clear all done todo items, destroying their models.
-        clearCompleted: function () {
-            _.invoke(Todos.done(), 'destroy');
-            return false;
-        },
-
-        toggleAllComplete: function () {
-            //var done = this.allCheckbox.checked;
-            //Todos.each(function (todo) {
-            //    todo.save({
-            //        'done': done
-            //    });
-            //});
-	    _.invoke(Map.togglePolygon());
-	    
-        }
 
     });
 

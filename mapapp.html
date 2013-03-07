@@ -27,11 +27,12 @@
 
 <body>
 
-  <div id="todoapp">
+  <div id="mappointapp">
 
     <header>
-      <h1>Map Points</h1>
-      <input id="new-todo" type="text" placeholder="Click the map to start adding points.">
+      <h1>Map Editor</h1>
+      <input id="new-mapinfo" type="text" placeholder="Type description here.">
+    
     </header>
 
     <section id="main">
@@ -41,37 +42,27 @@
 	<option value="shape">Shape</option>
       </select>
       
-      <input id="toggle-all" type="checkbox">
-      <label for="toggle-all">Mark all as complete</label>
-      <ul id="todo-list"></ul>
+      <ul id="mappoint-list"></ul>
     </section>
 
     <footer>
-      <a id="clear-completed">Clear completed</a>
-      <div id="todo-count"></div>
+      <div id="mappoint-count"></div>
     </footer>
 
   </div>
 
   <div id="instructions">
-    Double-click to edit a todo.
+    Click the map to start adding points.
+    <br>Right-click to remove points.
+    <br>Drag to relocate points.
   </div>
 
   <!-- Map Element -->
   <div id='mapDiv' oncontextmenu="return false"></div>
-
-  <!--
-  <div id="pointsDiv" style="position: absolute; left: 666px; width: 500px; height: 400px; top: 71px;">
-     <ol id="sortable">
-     </ol>
-  </div>
-  -->
   
   <!-- Templates -->
-
   <script type="text/template" id="item-template">
     <div class="view">
-      <input class="toggle" type="checkbox" <%= done ? 'checked="checked"' : '' %> />
       <label><%- order %></label>
       <a class="destroy"></a>
     </div>
@@ -79,10 +70,7 @@
   </script>
 
   <script type="text/template" id="stats-template">
-    <% if (done) { %>
-      <a id="clear-completed">Clear <%= done %> completed <%= done == 1 ? 'item' : 'items' %></a>
-    <% } %>
-    <div class="todo-count"><b><%= remaining %></b> <%= remaining == 1 ? 'item' : 'items' %> left</div>
+    <div class="mappoint-count"><b><%= remaining %></b> points</div>
   </script>
 
   </body>
