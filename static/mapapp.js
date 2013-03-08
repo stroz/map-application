@@ -358,8 +358,10 @@ $(function () {
 		    var found = MapPoints.find(function (mappoint) {
 			return mappoint.get('order') === 2;
 		    });
-		    found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
-		    found.save();
+		    if (found){
+			found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
+			found.save();
+		    }
 		}
 
                 // Now update the text on the pins for all pins higher than that.
@@ -395,8 +397,10 @@ $(function () {
 			var found = MapPoints.find(function (mappoint) {
 			    return mappoint.get('order') === 2;
 			});
-			found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
-			found.save();
+			if (found){
+			    found.set({"description": $("#new-mapinfo").val(), "type": $("#type-selector").val()});
+			    found.save();
+			}
 		    }
 
                     break;
@@ -445,12 +449,14 @@ $(function () {
 
             MapPoints.fetch();
 
-	    // Render the description and type
-	    var found = MapPoints.find(function (mappoint) {
-                return mappoint.get('order') === 1;
-            });
-	    this.input.val(found.get("description"));
-	    this.type.val(found.get("type"));
+	    // If there are already MapPoints, render the description and type
+	    if (MapPoints.length) {
+		var found = MapPoints.find(function (mappoint) {
+                    return mappoint.get('order') === 1;
+		});
+		this.input.val(found.get("description"));
+		this.type.val(found.get("type"));
+	    }
         },
 
 	typeSelector: function(e) {
@@ -459,8 +465,10 @@ $(function () {
 	    var found = MapPoints.find(function (mappoint) {
                 return mappoint.get('order') === 1;
             });
-	    found.set({"type": $type});
-	    found.save();
+	    if (found){
+		found.set({"type": $type});
+		found.save();
+	    }
 
 	    switch($type) {
 	    case 'point':
