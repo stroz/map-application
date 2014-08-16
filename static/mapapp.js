@@ -1,4 +1,4 @@
-// Uses local storage to persist models within your browser (for now).
+// Uses local storage to persist models within your browser.
 // This will be uncoupled and connected to the server to persist models in the database
 // Load the application once the DOM is ready, using `jQuery.ready`:
 $(function () {
